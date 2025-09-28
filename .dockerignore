@@ -1,0 +1,16 @@
+__pycache__/
+.venv/
+env/
+*.pyc
+.git
+.gitignore
+.DS_Store
+node_modules/
+dist/
+build/
+**/.pytest_cache
+**/.mypy_cache
+**/.ruff_cache
+**/.venv
+**/.ipynb_checkpoints
+

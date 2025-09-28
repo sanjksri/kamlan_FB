@@ -1,0 +1,72 @@
+name: Deploy to Cloud Run and Firebase Hosting
+
+on:
+  push:
+    branches: ["main"]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+      REGION: us-central1
+      SERVICE: kamlan-fb
+      FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Google Cloud auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT_EMAIL }}
+
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+
+      - name: Configure Docker auth for Artifact Registry
+        run: gcloud auth configure-docker ${REGION}-docker.pkg.dev --quiet
+
+      - name: Build and push image
+        run: |
+          IMAGE=${REGION}-docker.pkg.dev/${PROJECT_ID}/cloud-run/${SERVICE}:$GITHUB_SHA
+          docker build -t $IMAGE .
+          docker push $IMAGE
+          echo "IMAGE=$IMAGE" >> $GITHUB_ENV
+
+      - name: Deploy to Cloud Run
+        run: |
+          gcloud run deploy ${SERVICE} \
+            --image ${IMAGE} \
+            --region ${REGION} \
+            --allow-unauthenticated \
+            --platform managed \
+            --port 8080
+
+      - name: Fetch Cloud Run URL
+        id: runurl
+        run: |
+          URL=$(gcloud run services describe ${SERVICE} --region ${REGION} --format='value(status.url)')
+          echo "url=$URL" >> $GITHUB_OUTPUT
+
+      - name: Install Firebase CLI
+        run: |
+          curl -sL https://firebase.tools | bash
+
+      - name: Use Cloud Run rewrite in firebase.json
+        run: |
+          jq \
+            --arg service "${SERVICE}" \
+            --arg region "${REGION}" \
+            '.hosting.rewrites=[{source:"**", run:{serviceId:$service, region:$region}}]' \
+            firebase.json > firebase.json.tmp && mv firebase.json.tmp firebase.json
+
+      - name: Deploy Firebase Hosting
+        run: |
+          firebase deploy --only hosting --project ${FIREBASE_PROJECT_ID} --non-interactive

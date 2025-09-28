@@ -6,6 +6,7 @@ import os
 from datetime import datetime
 import ee
 import json
+import requests
 import numpy as np
 import geemap.foliumap as gee_folium
 import leafmap.foliumap as leaf_folium
