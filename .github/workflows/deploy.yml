@@ -24,6 +24,7 @@ jobs:
         with:
           workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
           service_account: ${{ secrets.GCP_SERVICE_ACCOUNT_EMAIL }}
+          export_environment_variables: true
 
       - name: Set up gcloud
         uses: google-github-actions/setup-gcloud@v2
@@ -55,18 +56,17 @@ jobs:
           URL=$(gcloud run services describe ${SERVICE} --region ${REGION} --format='value(status.url)')
           echo "url=$URL" >> $GITHUB_OUTPUT
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
       - name: Install Firebase CLI
-        run: |
-          curl -sL https://firebase.tools | bash
+        run: npm i -g firebase-tools
 
-      - name: Use Cloud Run rewrite in firebase.json
+      - name: Deploy Firebase Hosting (ADC)
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ env.GOOGLE_GHA_CREDS_PATH }}
         run: |
-          jq \
-            --arg service "${SERVICE}" \
-            --arg region "${REGION}" \
-            '.hosting.rewrites=[{source:"**", run:{serviceId:$service, region:$region}}]' \
-            firebase.json > firebase.json.tmp && mv firebase.json.tmp firebase.json
-
-      - name: Deploy Firebase Hosting
-        run: |
+          firebase --version
           firebase deploy --only hosting --project ${FIREBASE_PROJECT_ID} --non-interactive
