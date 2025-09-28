@@ -1,5 +1,6 @@
 {
   "hosting": {
+    "site": "kamlan",
     "public": "public",
     "ignore": [
       "firebase.json",
