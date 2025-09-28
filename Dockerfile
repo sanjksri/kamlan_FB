@@ -29,11 +29,8 @@ COPY . .
 # Streamlit port
 EXPOSE 8080
 
-# Streamlit config to bind to 0.0.0.0 and port 8080
-ENV STREAMLIT_SERVER_HEADLESS=true \
-    STREAMLIT_SERVER_PORT=8080 \
-    STREAMLIT_SERVER_ADDRESS=0.0.0.0 \
-    STREAMLIT_BROWSER_GATHER_USAGE_STATS=false
+# Streamlit config via flags to honor Cloud Run $PORT
+ENV STREAMLIT_BROWSER_GATHER_USAGE_STATS=false
 
-CMD ["streamlit", "run", "app.py"]
+CMD ["bash", "-lc", "streamlit run app.py --server.address=0.0.0.0 --server.port=${PORT:-8080} --server.headless true --server.enableCORS false --server.enableXsrfProtection false"]
 
