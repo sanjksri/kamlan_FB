@@ -46,11 +46,15 @@ jobs:
         if: false
         run: echo "Skipping legacy build"
 
-      - name: Build and push API image
+      - name: Ensure Artifact Registry repo
+        run: |
+          gcloud artifacts repositories create cloud-run \
+            --repository-format=docker --location=${REGION} || true
+
+      - name: Build API image with Cloud Build
         run: |
           API_IMAGE=${REGION}-docker.pkg.dev/${PROJECT_ID}/cloud-run/kamlan-api:$GITHUB_SHA
-          docker build -t $API_IMAGE -f api/Dockerfile .
-          docker push $API_IMAGE
+          gcloud builds submit api --tag $API_IMAGE
           echo "API_IMAGE=$API_IMAGE" >> $GITHUB_ENV
 
       - name: Deploy API to Cloud Run
