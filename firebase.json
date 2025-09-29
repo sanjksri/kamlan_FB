@@ -1,20 +1,15 @@
 {
   "hosting": {
     "site": "kamlan",
-    "public": "public",
+    "public": "frontend/out",
     "ignore": [
       "firebase.json",
       "**/.*",
       "**/node_modules/**"
     ],
     "rewrites": [
-      {
-        "source": "**",
-        "run": {
-          "serviceId": "kamlan-fb",
-          "region": "us-central1"
-        }
-      }
+      { "source": "/api/**", "run": { "serviceId": "kamlan-api", "region": "us-central1" } },
+      { "source": "**", "destination": "/index.html" }
     ]
   }
 }
